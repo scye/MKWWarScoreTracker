@@ -1,0 +1,94 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<title>
+War score
+</title>
+</head>
+<body>
+<canvas width=900></canvas>
+<script>
+var ctx = document.querySelector("canvas").getContext("2d"),
+gradient = ctx.createLinearGradient(0, 80, 900, 0),
+
+// Text style
+dashLen = 80, dashOffset = dashLen,
+speed = 15,
+txt = "", // Don't change
+horizontalOffset = 0, i = 0; // Don't change
+
+ctx.font = "italic 70px ITC Avant Garde Gothic Std";
+ctx.lineWidth = 5;
+ctx.lineJoin = "round";
+ctx.globalAlpha = 0.8;
+gradient.addColorStop(0, "#aaffff"); // Color 1 (bottom left)
+gradient.addColorStop(1, "#ffffff"); // Color 2 (top right)
+
+// Shadow
+ctx.shadowColor = "#0000005F"; // Color (RGBA)
+ctx.shadowBlur = 5;
+ctx.shadowOffsetX = 5;
+ctx.shadowOffsetY = 5;
+
+var updateInterval = 5000; // Time (in ms) between update checks
+
+ctx.strokeStyle = ctx.fillStyle = gradient;
+
+var myInterval = setInterval(function()
+{
+	readTextFile("http://localhost:8083/WarScore.txt").then(newTxt => {
+		if (newTxt != txt) // Test if text is new
+		{
+			txt = newTxt;
+
+			// Reset canvas
+			ctx.clearRect(0, 0, 900, 150);
+			i = 0;
+			horizontalOffset = 0;
+			dashOffset = dashLen;
+
+			// Play animation
+			animate();
+		}
+	});
+}, updateInterval);
+
+async function readTextFile(file)
+{
+	try
+	{
+		const response = await fetch(file);
+		if (!response.ok)
+		{
+			throw new Error("Couldn't find file: " + response.statusText)
+		}
+		const text = await response.text();
+		return text;
+	}
+	catch (error)
+	{
+		console.error("Error: ", error)
+	}
+}
+
+function animate()
+{
+	//
+	ctx.setLineDash([dashLen - dashOffset, dashOffset - speed]); // create a long dash mask
+	dashOffset -= speed;                                         // reduce dash length
+	ctx.strokeText(txt[i], horizontalOffset, 90);                // stroke letter
+
+	if (dashOffset > 0) requestAnimationFrame(animate);             // animate
+	else
+	{
+		ctx.fillText(txt[i], horizontalOffset, 90);              // fill final letter
+		dashOffset = dashLen;                                    // prep next char
+		horizontalOffset += ctx.measureText(txt[i++]).width + ctx.lineWidth * Math.random();
+		ctx.setTransform(1, 0, 0, 1, 0, 3 * Math.random());      // random y-delta
+		ctx.rotate(Math.random() * 0.005);                       // random rotation
+		if (i < txt.length) requestAnimationFrame(animate);
+	}
+}
+</script>
+</body>
+</html>
